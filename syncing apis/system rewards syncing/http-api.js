@@ -66,7 +66,7 @@ async function execute(){
 			var con5 = mysql.createConnection(DB_CONFIG);
 			const query5 = util.promisify(con5.query).bind(con5);	
 			try{
-					var _mywherecondition = "  deployer_addr='"+myAccountAddress+"'  limit 25";
+					var _mywherecondition = "  deployer_addr='"+myAccountAddress+"' ORDER BY id DESC  limit 25";
 					var select_wallet_query = "SELECT * FROM transactions_data WHERE "+_mywherecondition;	
 					var walletTxnData = await query5(select_wallet_query).catch(console.log);
 						
