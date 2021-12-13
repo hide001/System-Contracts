@@ -31,7 +31,7 @@ const options = {
 	},
 };
 
-var FROM_CHAIN = 24;	// chain ID 24 is for the Dithereum Mainnet
+var DTH_CHAIN_ID = 24;	// chain ID 24 is for the Dithereum Mainnet
 var ETH_TOKEN_ADDRESS = "0x232A1fD8742a606238B53B7babA5fEe5835f3c97";
 var BNB_TOKEN_ADDRESS = "0x57012f5fE63a47a668b1fF9f6eF3D234A22e8C19";
 var MATIC_TOKEN_ADDRESS = "0xf2A16551D5ab32acf690548DcFaB1302224B9926";
@@ -154,7 +154,7 @@ async function getEventData_TokenIn(_fromBlock, _toBlock){
 							if(parseInt(_amount)){							
 								try{
 									
-									var insert_query = "INSERT INTO bridge_transactions (`userWallet`,`orderID`,`fromChain`,`fromCurrency`,`fromTxnHash`,`fromAmount`,`toChain`,`toCurrency`) VALUES ('"+_userWallet+"',"+_orderid+","+FROM_CHAIN+",'"+_fromCurrency+"','"+_txnHash+"',"+_amount+","+_toChain+",'"+_toCurrency+"')";		
+									var insert_query = "INSERT INTO bridge_transactions (`userWallet`,`orderID`,`fromChain`,`fromCurrency`,`fromTxnHash`,`fromAmount`,`toChain`,`toCurrency`) VALUES ('"+_userWallet+"',"+_orderid+","+DTH_CHAIN_ID+",'"+_fromCurrency+"','"+_txnHash+"',"+_amount+","+_toChain+",'"+_toCurrency+"')";		
 									console.log(">>> Inserting record, orderid, transactionHash >>>",_orderid, _txnHash);
 									await db_query(insert_query).catch(console.log);
 										
@@ -213,7 +213,7 @@ async function getEventData_TokenOut(_fromBlock, _toBlock){
 									}
 									else{
 										//just in case, the order ID and chain ID are not found in the db, then it will log it. This is very rare to happen.
-										console.log("Unprocessed Transaction Hash: "+_txnHash);
+										console.log("Unprocessed Transaction: chain, Hash: "+DTH_CHAIN_ID+" - "+_txnHash);
 									}
 									
 										
