@@ -70,6 +70,10 @@ contract Validators is Params {
     uint public validatorPartPercent;
     uint public burnPartPercent;
     uint public contractPartPercent;
+    uint public burnStopAmount;
+    uint public totalBurnt;
+
+    mapping(address => address) public contractCreator;
 
     // staker => validator => lastRewardTime
     mapping(address => mapping(address => uint)) public stakeTime;
@@ -158,6 +162,16 @@ contract Validators is Params {
         _;
     }
 
+
+    // This contract share of validator gain to creator of contract
+    // It is advised to call this function your contract constructor to avoid intruders
+    function setContractCreator(address _contract ) public returns(bool)
+    {
+        require(contractCreator[_contract] == address(0), "invalid call");
+        contractCreator[_contract] = tx.origin;
+        return true;
+    }
+
     function initialize(address[] calldata vals) external onlyNotInitialized {
         proposal = Proposal(ProposalAddr);
         punish = Punish(PunishContractAddr);
@@ -181,10 +195,11 @@ contract Validators is Params {
             }
         }
 
-        stakerPartPercent = 25000;
-        validatorPartPercent = 40000;
-        burnPartPercent = 10000;
-        contractPartPercent = 25000;
+        stakerPartPercent = 45000;
+        validatorPartPercent = 5000;
+        burnPartPercent = 0;
+        contractPartPercent = 50000;
+        burnStopAmount = 2500 * ( 10 ** 18);
 
         initialized = true;
     }
@@ -455,17 +470,6 @@ contract Validators is Params {
         return true;
     }
 
-    function isContract(address account) internal view returns (bool) {
-        // According to EIP-1052, 0x0 is the value returned for not-yet created accounts
-        // and 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470 is returned
-        // for accounts without code, i.e. `keccak256('')`
-        bytes32 codehash;
-        bytes32 accountHash = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
-        // solhint-disable-next-line no-inline-assembly
-        assembly { codehash := extcodehash(account) }
-        return (codehash != accountHash && codehash != 0x0);
-    }
-
 
     // distributeBlockReward distributes block reward to all active validators
     function distributeBlockReward(address[] memory _to, uint64[] memory _gass)
@@ -484,22 +488,28 @@ contract Validators is Params {
         uint _validatorPart = reward * validatorPartPercent / 100000;
         remaining = remaining - _validatorPart;
 
-        //to burn    
+        //to burn 
         uint _burnPart = reward * burnPartPercent / 100000;
-        remaining = remaining - _burnPart;
-        if(_burnPart > 0) address(0).transfer(_burnPart);
+        if(totalBurnt + _burnPart <= burnStopAmount ) 
+        {
+            remaining = remaining - _burnPart;
+            totalBurnt += _burnPart;
+            if(_burnPart > 0) address(0).transfer(_burnPart);
+        } 
+
 
         // to contract
         //uint _contractPart = reward * contractPartPercent / 100000;
         for (uint i=0; i<_to.length; i++)
         {
-            if(isContract(_to[i]))
+            if(_to[i] != address(0) && contractCreator[_to[i]] != address(0))
             {
                 uint amt = uint256(_gass[i]);
                 amt = amt * contractPartPercent / 100000;
-                payable(_to[i]).transfer(amt);
+                payable(contractCreator[_to[i]]).transfer(amt);
                 remaining = remaining - amt;
             }
+
         }
 
         uint lastRewardHold = reflectionPercentSum[val][lastRewardTime[val]];
