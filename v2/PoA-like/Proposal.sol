@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.6.0 <0.8.0;
+pragma solidity 0.8.17;
 
-import "Params.sol";
-import "Validators.sol";
-3
+import "./Params.sol";
+import "./Validators.sol";
+
 contract Proposal is Params {
     // How long a proposal will exist
     uint256 public proposalLastingPeriod;

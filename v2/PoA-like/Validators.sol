@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.6.0 <0.8.0;
+pragma solidity 0.8.17;
 
-import "Params.sol";
-import "Proposal.sol";
-import "Punish.sol";
-import "SafeMath.sol";
+import "./Params.sol";
+import "./Proposal.sol";
+import "./Punish.sol";
 
 contract Validators is Params {
-    using SafeMath for uint256;
 
     enum Status {
         // validator not exist, default status
@@ -63,11 +61,6 @@ contract Validators is Params {
     uint256 public totalStake;
     // total jailed hb
     uint256 public totalJailedHB;
-
-    uint public contractOwnersPart;
-    address public signer;
-    address public newSigner;    
-    mapping (address => uint) public deployers;
 
     // System contracts
     Proposal proposal;
@@ -147,7 +140,6 @@ contract Validators is Params {
     function initialize(address[] calldata vals) external onlyNotInitialized {
         proposal = Proposal(ProposalAddr);
         punish = Punish(PunishContractAddr);
-        signer = 0xBFb9B248D0e735032a70826572f79381dDC7F0De;
 
         for (uint256 i = 0; i < vals.length; i++) {
             require(vals[i] != address(0), "Invalid validator address");
@@ -177,7 +169,7 @@ contract Validators is Params {
         onlyInitialized
         returns (bool)
     {
-        address payable staker = msg.sender;
+        address payable staker = payable(msg.sender);
         uint256 staking = msg.value;
 
         require(
@@ -197,7 +189,7 @@ contract Validators is Params {
         Validator storage valInfo = validatorInfo[validator];
         // The staked coins of validator must >= MinimalStakingCoin
         require(
-            valInfo.coins.add(staking) >= MinimalStakingCoin,
+            valInfo.coins + staking >= MinimalStakingCoin,
             "Staking coins not enough"
         );
 
@@ -208,17 +200,15 @@ contract Validators is Params {
             valInfo.stakers.push(staker);
         }
 
-        valInfo.coins = valInfo.coins.add(staking);
+        valInfo.coins = valInfo.coins + staking;
         if (valInfo.status != Status.Staked) {
             valInfo.status = Status.Staked;
         }
         tryAddValidatorToHighestSet(validator, valInfo.coins);
 
         // record staker's info
-        staked[staker][validator].coins = staked[staker][validator].coins.add(
-            staking
-        );
-        totalStake = totalStake.add(staking);
+        staked[staker][validator].coins = staked[staker][validator].coins + staking;
+        totalStake = totalStake + staking;
 
         emit LogStake(staker, validator, staking, block.timestamp);
         return true;
@@ -237,7 +227,7 @@ contract Validators is Params {
             validateDescription(moniker, identity, website, email, details),
             "Invalid description"
         );
-        address payable validator = msg.sender;
+        address payable validator = payable(msg.sender);
         bool isCreate = false;
         if (validatorInfo[validator].status == Status.NotExist) {
             require(proposal.pass(validator), "You must be authorized first");
@@ -285,6 +275,8 @@ contract Validators is Params {
         validatorInfo[validator].status = Status.Created;
 
         emit LogReactive(validator, block.timestamp);
+
+        return true;
     }
 
     function unstake(address validator)
@@ -312,7 +304,7 @@ contract Validators is Params {
         require(
             !(highestValidatorsSet.length == 1 &&
                 isTopValidator(validator) &&
-                valInfo.coins.sub(unstakeAmount) < MinimalStakingCoin),
+                (valInfo.coins - unstakeAmount) < MinimalStakingCoin),
             "You can't unstake, validator list will be empty after this operation!"
         );
 
@@ -327,10 +319,10 @@ contract Validators is Params {
         }
         valInfo.stakers.pop();
 
-        valInfo.coins = valInfo.coins.sub(unstakeAmount);
+        valInfo.coins = valInfo.coins - unstakeAmount;
         stakingInfo.unstakeBlock = block.number;
         stakingInfo.index = 0;
-        totalStake = totalStake.sub(unstakeAmount);
+        totalStake = totalStake - unstakeAmount;
 
         // try to remove it out of active validator set if validator's coins < MinimalStakingCoin
         if (valInfo.coins < MinimalStakingCoin) {
@@ -422,11 +414,8 @@ contract Validators is Params {
     {
         operationsDone[block.number][uint8(Operations.Distribute)] = true;
         address val = msg.sender;
-        uint256 hb = msg.value/2;
-        // to distribute to contract owner
-        contractOwnersPart += msg.value * 4 / 10;
-        // 10% to burn
-        address(0).transfer(msg.value/10);
+        uint256 hb = msg.value;
+
         // never reach this
         if (validatorInfo[val].status == Status.NotExist) {
             return;
@@ -560,7 +549,7 @@ contract Validators is Params {
                 validatorInfo[currentValidatorSet[i]].status != Status.Jailed &&
                 val != currentValidatorSet[i]
             ) {
-                total = total.add(validatorInfo[currentValidatorSet[i]].coins);
+                total = total + validatorInfo[currentValidatorSet[i]].coins;
                 len++;
             }
         }
@@ -661,10 +650,8 @@ contract Validators is Params {
         if (hb > 0) {
             addProfitsToActiveValidatorsByStakePercentExcept(hb, val);
             // for display purpose
-            totalJailedHB = totalJailedHB.add(hb);
-            validatorInfo[val].totalJailedHB = validatorInfo[val]
-                .totalJailedHB
-                .add(hb);
+            totalJailedHB = totalJailedHB + hb;
+            validatorInfo[val].totalJailedHB = validatorInfo[val].totalJailedHB + hb;
 
             validatorInfo[val].hbIncoming = 0;
         }
@@ -697,8 +684,8 @@ contract Validators is Params {
 
         // no stake(at genesis period)
         if (totalRewardStake == 0) {
-            uint256 per = totalReward.div(rewardValsLen);
-            remain = totalReward.sub(per.mul(rewardValsLen));
+            uint256 per = totalReward / rewardValsLen;
+            remain = totalReward - (per * rewardValsLen);
 
             for (uint256 i = 0; i < currentValidatorSet.length; i++) {
                 address val = currentValidatorSet[i];
@@ -706,18 +693,14 @@ contract Validators is Params {
                     validatorInfo[val].status != Status.Jailed &&
                     val != punishedVal
                 ) {
-                    validatorInfo[val].hbIncoming = validatorInfo[val]
-                        .hbIncoming
-                        .add(per);
+                    validatorInfo[val].hbIncoming = validatorInfo[val].hbIncoming + per;
 
                     last = val;
                 }
             }
 
             if (remain > 0 && last != address(0)) {
-                validatorInfo[last].hbIncoming = validatorInfo[last]
-                    .hbIncoming
-                    .add(remain);
+                validatorInfo[last].hbIncoming = validatorInfo[last].hbIncoming + remain;
             }
             return;
         }
@@ -728,22 +711,16 @@ contract Validators is Params {
             if (
                 validatorInfo[val].status != Status.Jailed && val != punishedVal
             ) {
-                uint256 reward = totalReward.mul(validatorInfo[val].coins).div(
-                    totalRewardStake
-                );
-                added = added.add(reward);
+                uint256 reward = totalReward * validatorInfo[val].coins / totalRewardStake;
+                added = added + reward;
                 last = val;
-                validatorInfo[val].hbIncoming = validatorInfo[val]
-                    .hbIncoming
-                    .add(reward);
+                validatorInfo[val].hbIncoming = validatorInfo[val].hbIncoming + reward;
             }
         }
 
-        remain = totalReward.sub(added);
+        remain = totalReward - added;
         if (remain > 0 && last != address(0)) {
-            validatorInfo[last].hbIncoming = validatorInfo[last].hbIncoming.add(
-                remain
-            );
+            validatorInfo[last].hbIncoming = validatorInfo[last].hbIncoming + remain;
         }
     }
 
@@ -781,50 +758,4 @@ contract Validators is Params {
             }
         }
     }
-
-    modifier onlySigner{
-        require(msg.sender == signer, "Invalid Caller");
-        _;
-    }
-
-    function changeSigner(address _newSigner) public onlySigner returns(bool){
-        newSigner = _newSigner;
-        return true;
-    }
-
-    function acceptSigner() public onlySigner returns(bool){
-        require(msg.sender == newSigner , "Invalid Caller");
-        signer = newSigner;
-        newSigner = address(0);
-        return true;
-    }
-
-    function addDeployersValues(address[] memory _deployers, uint256[] memory _amounts)
-        public
-        onlySigner
-        returns (bool)
-    {
-        uint256 total = _deployers.length;
-        uint sumUp = 0;
-        require(total <= 150, 'Too many recipients');
-        for (uint256 i = 0; i < total; i++) {
-            deployers[_deployers[i]] += _amounts[i];
-            sumUp += _amounts[i];
-        }
-        require(sumUp <= contractOwnersPart, "Total Amount exceed than available");
-        contractOwnersPart -= sumUp;
-        return true;
-    }
-
-    event withdrawDeployerValueEv(address wallet,uint amount);
-
-    function withdrawDeployerValue() public returns(bool){
-        uint value = deployers[msg.sender];
-        require(value > 0, "no amount exist");
-        deployers[msg.sender] = 0;
-        msg.sender.transfer(value);
-        emit withdrawDeployerValueEv(msg.sender, value);
-        return true;
-    }
-
 }
