@@ -1,10 +1,9 @@
-// SPDX-License-Identifier: MIT
 pragma solidity >=0.6.0 <0.8.0;
 
-import "Params.sol";
-import "Proposal.sol";
-import "Punish.sol";
-import "SafeMath.sol";
+import "./Params.sol";
+import "./Proposal.sol";
+import "./Punish.sol";
+import "./SafeMath.sol";
 
 contract Validators is Params {
     using SafeMath for uint256;
@@ -63,11 +62,6 @@ contract Validators is Params {
     uint256 public totalStake;
     // total jailed hb
     uint256 public totalJailedHB;
-
-    uint public contractOwnersPart;
-    address public signer;
-    address public newSigner;    
-    mapping (address => uint) public deployers;
 
     // System contracts
     Proposal proposal;
@@ -147,7 +141,6 @@ contract Validators is Params {
     function initialize(address[] calldata vals) external onlyNotInitialized {
         proposal = Proposal(ProposalAddr);
         punish = Punish(PunishContractAddr);
-        signer = 0xBFb9B248D0e735032a70826572f79381dDC7F0De;
 
         for (uint256 i = 0; i < vals.length; i++) {
             require(vals[i] != address(0), "Invalid validator address");
@@ -422,11 +415,8 @@ contract Validators is Params {
     {
         operationsDone[block.number][uint8(Operations.Distribute)] = true;
         address val = msg.sender;
-        uint256 hb = msg.value/2;
-        // to distribute to contract owner
-        contractOwnersPart += msg.value * 4 / 10;
-        // 10% to burn
-        address(0).transfer(msg.value/10);
+        uint256 hb = msg.value;
+
         // never reach this
         if (validatorInfo[val].status == Status.NotExist) {
             return;
@@ -781,50 +771,4 @@ contract Validators is Params {
             }
         }
     }
-
-    modifier onlySigner{
-        require(msg.sender == signer, "Invalid Caller");
-        _;
-    }
-
-    function changeSigner(address _newSigner) public onlySigner returns(bool){
-        newSigner = _newSigner;
-        return true;
-    }
-
-    function acceptSigner() public onlySigner returns(bool){
-        require(msg.sender == newSigner , "Invalid Caller");
-        signer = newSigner;
-        newSigner = address(0);
-        return true;
-    }
-
-    function addDeployersValues(address[] memory _deployers, uint256[] memory _amounts)
-        public
-        onlySigner
-        returns (bool)
-    {
-        uint256 total = _deployers.length;
-        uint sumUp = 0;
-        require(total <= 150, 'Too many recipients');
-        for (uint256 i = 0; i < total; i++) {
-            deployers[_deployers[i]] += _amounts[i];
-            sumUp += _amounts[i];
-        }
-        require(sumUp <= contractOwnersPart, "Total Amount exceed than available");
-        contractOwnersPart -= sumUp;
-        return true;
-    }
-
-    event withdrawDeployerValueEv(address wallet,uint amount);
-
-    function withdrawDeployerValue() public returns(bool){
-        uint value = deployers[msg.sender];
-        require(value > 0, "no amount exist");
-        deployers[msg.sender] = 0;
-        msg.sender.transfer(value);
-        emit withdrawDeployerValueEv(msg.sender, value);
-        return true;
-    }
-
 }
