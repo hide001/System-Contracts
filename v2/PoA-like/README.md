@@ -1,4 +1,4 @@
-## POA-Like Consensus
+## POA-Advanced Consensus
 
 => This is not 100% PoA like Ethereum Clique. But it advanced version of PoA adding staking ability as well.
 
