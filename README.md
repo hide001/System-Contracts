@@ -1,24 +1,10 @@
 # Dithereum System Contracts
 
-## Prepare
+## Consensus
 
-Install dependency:
+HPoS
 
-```bash
-yarn
-```
+DPoS
 
-Compile files:
+PoA
 
-```bash
-yarn compile
-```
-
-Release solidity files will be generated in `cache` folder.
-
-## unit test
-Test:
-
-```bash
-yarn test
-```
