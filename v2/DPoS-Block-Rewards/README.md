@@ -1,7 +1,9 @@
-## DPoS with Block rewards
+## DPoS Consensus
 
-=> This is DPos consensus. It will release block rewards to the validators.
+=> This is a delegated proof of stake
 
-=> All the coins for the reward will be pre-minted and should be sent to validator smart conrtacts.
+=> 21 active validators will be selected for reward based on staking volume.
 
-=> The specified block reward will be sent to validators until there will be enough balance for the rewards
+=> There will be delegators who can stake to any validator to earn staking reward
+
+=> We have kept Proposal.sol contract, just for the backward compatibility in blockchain. But it has no use in the system contracts.
