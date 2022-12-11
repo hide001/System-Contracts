@@ -5,8 +5,8 @@ contract Params {
     bool public initialized;
 
     // System contracts
-    address
-        public constant ValidatorContractAddr = 0x000000000000000000000000000000000000f000;
+    address payable
+        public constant ValidatorContractAddr = payable(0x000000000000000000000000000000000000f000);
     address
         public constant PunishContractAddr = 0x000000000000000000000000000000000000F001;
     address
