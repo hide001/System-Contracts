@@ -159,6 +159,11 @@ contract ValidatorData {
     function stakingValidations(address user, address validatorAddress) external view returns(uint256 minimumStakingAmt, uint256 stakingWaiting){
         return (valContract.MinimalStakingCoin(), waitingWithdrawStaking(user, validatorAddress));
     }
+    
+    function checkValidator(address user) external view returns(bool){
+        //this function is for UI compatibility
+        return true;
+    }
 
 
 }
