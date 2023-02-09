@@ -237,6 +237,10 @@ contract Validators is Params {
             // add staker to validator's record list
             staked[staker][validator].index = valInfo.stakers.length;
             valInfo.stakers.push(staker);
+             if(lastRewardTime[validator] == 0)
+            {
+                lastRewardTime[validator] = block.timestamp;
+            }
             stakeTime[staker][validator] = lastRewardTime[validator];
         }
         else
@@ -371,7 +375,7 @@ contract Validators is Params {
         totalStake = totalStake - (unstakeAmount);
 
         // try to remove it out of active validator set if validator's coins < MinimalStakingCoin
-        if (valInfo.coins < MinimalStakingCoin) {
+        if (valInfo.coins < MinimalStakingCoin && validatorInfo[validator].status != Status.Jailed) {
             valInfo.status = Status.Unstaked;
             // it's ok if validator not in highest set
             tryRemoveValidatorInHighestSet(validator);
