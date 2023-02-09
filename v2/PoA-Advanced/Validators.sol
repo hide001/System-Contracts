@@ -325,7 +325,7 @@ contract Validators is Params {
         totalStake = totalStake - unstakeAmount;
 
         // try to remove it out of active validator set if validator's coins < MinimalStakingCoin
-        if (valInfo.coins < MinimalStakingCoin) {
+        if (valInfo.coins < MinimalStakingCoin && validatorInfo[validator].status != Status.Jailed) {
             valInfo.status = Status.Unstaked;
             // it's ok if validator not in highest set
             tryRemoveValidatorInHighestSet(validator);
