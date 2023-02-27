@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.14;
+pragma solidity 0.8.19;
 
 
 
@@ -142,6 +142,10 @@ contract ValidatorData {
         //validator and delegators will have waiting 
    
         (, uint256 unstakeBlock, ) = valContract.getStakingInfo(user,validatorAddress);
+
+        if(unstakeBlock==0){
+            return 0;
+        }
         
         if(unstakeBlock + valContract.StakingLockPeriod() > block.number){
             return 3 * ((unstakeBlock + valContract.StakingLockPeriod()) - block.number);
