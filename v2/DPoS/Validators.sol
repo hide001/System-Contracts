@@ -265,9 +265,10 @@ contract Validators is Params {
             validatorInfo[validator].status = Status.Created;
             isCreate = true;
         }
-        else 
+        else  if(msg.value > 0)             
         {
-            require(msg.value == 0, "Cannot restake from here");
+            //require(msg.value == 0, "Cannot restake from here");           
+             return false;            
         }
 
         if (validatorInfo[validator].feeAddr != feeAddr) {
