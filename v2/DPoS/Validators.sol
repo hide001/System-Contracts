@@ -154,7 +154,7 @@ contract Validators is Params {
 
     // This contract share of validator gain to creator of contract
     // It is advised to call this function your contract constructor to avoid intruders
-    function setContractCreator(address _contract ) public returns(bool)
+    function setContractCreator(address _contract ) private returns(bool)
     {
         require(contractCreator[_contract] == address(0), "invalid call");
         contractCreator[_contract] = tx.origin;
@@ -265,9 +265,10 @@ contract Validators is Params {
             validatorInfo[validator].status = Status.Created;
             isCreate = true;
         }
-        else 
+        else  if(msg.value > 0)             
         {
-            require(msg.value == 0, "Cannot restake from here");
+            //require(msg.value == 0, "Cannot restake from here");           
+             return false;            
         }
 
         if (validatorInfo[validator].feeAddr != feeAddr) {
